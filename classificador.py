@@ -11,28 +11,31 @@ openfaceModelDir = os.path.join(modelDir, 'openface')
 align = openface.AlignDlib(os.path.join(dlibModelDir, "shape_predictor_68_face_landmarks.dat"))
 net = openface.TorchNeuralNet(os.path.join(openfaceModelDir, 'nn4.small2.v1.t7'))
 
-img1 = cv2.imread("persons/Shakira/shakira.jpg")
-rgbimg1 = cv2.cvtColor(img1,cv2.COLOR_BGR2RGB)
-bb1 = align.getLargestFaceBoundingBox(rgbimg1)
-alignedFace1 = align.align(96, rgbimg1, bb1, landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
-rep1 = net.forward(alignedFace1)
+#search for openface.data.iterImgs
 
-img2 = cv2.imread("persons/Ben/Ben.jpg")
-rgbimg2 = cv2.cvtColor(img2,cv2.COLOR_BGR2RGB)
-bb2 = align.getLargestFaceBoundingBox(rgbimg2)
-alignedFace2 = align.align(96, rgbimg2, bb2, landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
-rep2 = net.forward(alignedFace2)
+def alignImg(img):
+    rgbimg = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+    bb = align.getLargestFaceBoundingBox(rgbimg)
+    alignedFace = align.align(96, rgbimg, bb, landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
+    return alignedFace
 
+def main():
+    persons = ["igor", "miguel", "rafael", "renan", "ricardo", "rudyer", "vinicius"]
+    persons_rep = []
 
-print("Representantion 1:")
-print(rep1)
-print("-----\n")
+    for person in persons:
+        rep = []
+        print(person)
+        for i in range(1,6):
+            img = cv2.imread("raw/" + person + "/" + str(i) + ".jpg")
+            aligned = alignImg(img)
+            print(i)
+            aux = net.forward(aligned)
+            rep.append(aux)
+        persons_rep.append(rep)
 
-print("Representantion 2:")
-print(rep2)
-print("-----\n")
+    for i in range(0,6):
+        print(person(i))
+        print(persons_rep(i))
 
-d = rep1 - rep2
-distance = np.dot(d,d)
-print("Distance:")
-print(distance)
+main()
