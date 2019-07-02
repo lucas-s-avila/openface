@@ -20,6 +20,18 @@ def alignImg(img):
     bb = align.getLargestFaceBoundingBox(rgbimg)
     alignedFace = align.align(96, rgbimg, bb, landmarkIndices=openface.AlignDlib.OUTER_EYES_AND_NOSE)
     return alignedFace
+
+
+def disMed(rep, vectors, n):
+    aux=0
+    for i in range(3):
+        distances=[]
+        for j in range(n[i]):
+            d = rep - vectors[j+aux]
+            d = np.dot(d,d)
+            distances.append(d)
+        aux+=n[i]
+        print(str(np.mean(distances)) + " - " + str(np.median(distances)) + " - " + str(np.std(distances)))
         
 
 def main():
@@ -41,8 +53,10 @@ def main():
         persons_rep.append(rep)
     '''
     # Reading the unknown person
-    imgs = list(openface.data.iterImgs("raw/vinicius"))
-    img_aligned = alignImg(imgs[4])
+    imgs = list(openface.data.iterImgs("raw/desconhecido"))
+    img = imgs[0]
+    print(img.name)
+    img_aligned = alignImg(img)
     if img_aligned is None:
         print("nao reconhecido")
         exit()
@@ -51,32 +65,60 @@ def main():
 
 
     imgs = list(openface.data.iterImgs("raw/igor"))
-    rep1 = net.forward(alignImg(imgs[0]))
-    rep1 += rep12
-
+    rep1 = []
+    for i,img in enumerate(imgs):
+        aligned = alignImg(img)
+        if aligned is None:
+            line = "Igor " + str(i) + "  nao reconhecida"
+            print(line)
+        else:
+            rep1.append(net.forward(aligned))
+    
     imgs = list(openface.data.iterImgs("raw/rudyer"))
-    rep2 = net.forward(alignImg(imgs[0]))
+    rep2 = []
+    for i,img in enumerate(imgs):
+        aligned = alignImg(img)
+        if aligned is None:
+            line = "Rudyer " + str(i) + "  nao reconhecida"
+            print(line)
+        else:
+            rep2.append(net.forward(aligned))
     
     imgs = list(openface.data.iterImgs("raw/miguel"))
-    rep3 = net.forward(alignImg(imgs[0]))
+    rep3 = []
+    for i,img in enumerate(imgs):
+        aligned = alignImg(img)
+        if aligned is None:
+            line = "Miguel " + str(i) + "  nao reconhecida"
+            print(line)
+        else:
+            rep3.append(net.forward(aligned))
 
     # Fiting into the SVC classifier
-    samples = [rep1, rep2, rep3]
-    labels = ["igor", "rudyer", "miguel"]
+    samples = rep1 + rep2 + rep3
+    labels1 = ["igor"] * len(rep1)
+    labels2 = ["rudyer"] * len(rep2)
+    labels3 = ["miguel"] * len(rep3)
+    labels = labels1 + labels2 + labels3
     
-    clf = svm.SVC(gamma='scale', decision_function_shape='ovo')
+    clf = svm.SVC(gamma='scale', decision_function_shape='ovo', probability=True)
     clf.fit(samples, labels)
 
     # predicting the unknown face
     print(clf.predict(img_rep.reshape(1,-1)))
-    print(clf.support_vectors_)
+
+    disMed(img_rep, clf.support_vectors_, clf.n_support_)
+
+    #disMed(img_rep, clf.support_vectors_, clf.n_support_[1])
+
+    #disMed(img_rep, clf.support_vectors_, clf.n_support_[2])
 
 
     '''
     To do:
         classificar todas as imagens dos rostos conhecidos dentro do svm;
-        ao ler um rosto desconhecido, achar as distâncias do rosto pros SVM's;
-        se menor ou maior que tal distância (a definir), aplicar clf.predict().
+        ao ler um rosto desconhecido, achar as distancias do rosto pros SVM's;
+        se menor ou maior que tal distancia (a definir), aplicar clf.predict().
     '''   
         
 
